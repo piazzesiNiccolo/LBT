@@ -1,0 +1,5 @@
+
+(executable
+ (public_name excercise1)
+ (name main)
+)

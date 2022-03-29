@@ -1,0 +1,12 @@
+(lang dune 3.0)
+
+(name excercise1)
+
+(package
+ (name excercise1)
+ (synopsis "A short synopsis")
+ (description "A longer description")
+ (depends ocaml dune)
+ (tags
+  (topics "to describe" your project)))
+
