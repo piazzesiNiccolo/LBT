@@ -57,4 +57,10 @@ let check_policies  events (policies: policy list)=
   policies
   |> List.map (check_accepts events)
   |> List.fold_left (&&) true 
+  (*
+  accepts = True;
+  for p in policies 
+    accepts = accepts && check_accepts p trace
+
+  *)
 

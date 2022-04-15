@@ -1,0 +1,3 @@
+(test
+ (name hw1)
+ (libraries qcheck))

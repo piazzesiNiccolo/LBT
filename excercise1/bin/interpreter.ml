@@ -29,8 +29,8 @@ let rec eval env   (trace: Security_policy.event list) (policies: Security_polic
   |Den x -> x |> Env.lookup env 
   |If(e1,e2,e3) -> 
     (match e1 |> eval env   trace policies with 
-     | Bool true -> eval env trace policies e3
-     | Bool false -> eval env trace policies e2
+     | Bool true -> eval env trace policies e2
+     | Bool false -> eval env trace policies e3
      | _ -> failwith "If guard must evaluate to a boolean") 
   |Let(id, e1, e2) -> let v1 = e1 |> eval  env trace policies  in
     let add_t = get_trace e1 in 
