@@ -5,7 +5,7 @@ kind of data.
 
 type 'v t = (string, 'v) Hashtbl.t
 
-let  lookup (env:'v t) = Hashtbl.find_opt env
+let  lookup (env:'v t)  (var: string)= Hashtbl.find_opt env var |> Option.get
 
 let empty_env = Hashtbl.create
 

@@ -1,5 +1,4 @@
 
-
 (* 
 EXAMPLES OF QCHECK
 
