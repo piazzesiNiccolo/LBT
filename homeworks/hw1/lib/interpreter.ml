@@ -46,7 +46,7 @@ let rec  eval env  (expr: exp) =
         - evalutating body of function with the new environment
          *)
        let x_vals = List.map (eval env) args in 
-       let new_env = List.map2 (Env.bind env) xs x_vals |> List.flatten in
+       let new_env = List.fold_left2 (Env.bind) env xs x_vals in
        eval new_env body
      |_ -> Error{
          kind=InvalidCall;
@@ -62,6 +62,6 @@ let add_func_decl env (f:fdecl) =
 
 let eval_program (Prog(funcs, exp)) =
     let init_env = Env.emptyenv in 
-    let env = List.map  (add_func_decl init_env)  funcs |> List.flatten in
+    let env = List.fold_left  (add_func_decl)  init_env funcs in
     eval env exp
 
