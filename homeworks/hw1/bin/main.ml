@@ -6,6 +6,8 @@ let rec err_to_string = function
 |Ast.InvalidAccess x -> "Cant access " ^ Option.get x
 |Ast.InvalidCall _-> "Invalid call of function"
 |Ast.InvalidExpression -> "Invalid expression"
+
+
 let evaluate expr = 
   match Interpreter.eval (Env.empty_table ()) expr with 
   | Ast.Int n -> Printf.printf "result: %d\n" n 
