@@ -7,15 +7,11 @@ type ide = string
 
 type binop = Sum | Times | Minus | Divide | Equal | Less | Greater
 
-type  event =  
-    | Call of ide
-    | Access of ide
-    | Binop of binop
-    
-type error_kind = 
-    |InvalidAccess of ide 
-    |InvalidCall 
-    |InvalidOperation
+type  action =  
+  | Access of ide
+  | Call of ide
+  | Arith 
+
 
 type exp = Eint of int
          | Ebool of bool
@@ -23,29 +19,27 @@ type exp = Eint of int
          | Binop of binop*exp*exp
          | If of exp*exp*exp
          | Let of ide*exp*exp
+         | Letfun of ide*ide list * exp * exp
          | Lambda of   ide list * exp  
-         | SandboxExecute of  (event, exp) Security.sandbox
+         | SandboxExecute of  exp*action list
          | Call of exp*exp list
 
-and fdecl = {
-    fname: ide
-    ; parameters: ide list
-    ; body: exp
-}
+type error_kind = 
+  |SecurityViolation of error_kind
+  |InvalidAccess of ide option 
+  | InvalidCall of ide option
+  |InvalidExecute
+  |InvalidExpression
+
+
+
+
 (*
 The expression can be evaluated by the interpreter to an integer, a boolean, or a closure which is the runtime value of functions expressions.
  *)
-and  value = Int of int
+type  value = Int of int
             | Bool of bool
-            | Closure of  (ide list *exp*value Env.t)
-            | Error of error
+            | Closure of  (ide option*ide list *exp*value Env.t)
+            | Error of error_kind
 (* a closure is made of the function name, the function argument, the body of the function and the symbol table with the values captured. We assume for simplicity to have only one parameter per function,
    which is similar to function abstractions in the lambda calculus where we obtain multi parameter functions by chaining single parameter ones.*)
-and error = 
-    {
-        kind: error_kind
-        ; message: string
-    }
-
-
-type program = Prog of fdecl list * exp
