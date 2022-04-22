@@ -63,7 +63,11 @@ let rec  eval (env:value Env.t)    =
        let new_env = Env.new_scope fdeclenv in
        let fenv = List.fold_left2 (Env.bind) new_env xs x_vals  in
        eval fenv   body
-     | Error e -> Error e
+     | Error e -> (
+         let err = match e with
+           |InvalidAccess f -> InvalidCall f
+           | _ -> e in 
+         Error err )
      |_ -> Error(InvalidAccess(None)))
   | SandboxExecute (e, permissions) -> 
     let sandbox = {
@@ -116,7 +120,16 @@ and eval_in_sandbox sandbox =
       eval_in_sandbox upd_sandbox lbody
     )
   | Lambda (i,e) -> Closure(None,i,e, sandbox.internal_env)
-  | SandboxExecute(_,_) -> Error(InvalidExecute)
+  | SandboxExecute(e,_) -> 
+    if allowed Execute sandbox then 
+      let new_sandbox = {
+        sandbox with
+        permissions=sandbox.permissions;
+        internal_env=Env.empty_table ()
+      } in 
+      eval_in_sandbox new_sandbox e
+    else
+      Error(SecurityViolation(InvalidExecute))
   | Call(f,args) -> 
     (match eval_in_sandbox sandbox  f with 
      | Closure(f,xs,body,fdeclenv) -> 
@@ -131,7 +144,12 @@ and eval_in_sandbox sandbox =
        let fenv = List.fold_left2 (Env.bind) new_env xs x_vals  in
        let upd_sandbox = {sandbox with internal_env = fenv} in
        eval_in_sandbox upd_sandbox  body
-     | Error e -> Error e
+
+     | Error e -> (let err = match e with
+         |InvalidAccess f -> InvalidCall f
+         | SecurityViolation(InvalidAccess f) -> SecurityViolation(InvalidCall f)
+         | _ -> e in 
+        Error err )
      |_ -> Error(InvalidCall(None)))
   | e -> eval sandbox.internal_env e
 
