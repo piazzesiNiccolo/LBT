@@ -22,12 +22,12 @@ let () =
                     Ast.SandboxExecute(
                       Call(
                         Ast.Den("fact"),
-                        [Ast.Den("y")]),[Ast.Access("fact");Ast.Arith;Ast.Access("y")]))
+                        Ast.Den("y")),[Ast.Access("fact");Ast.Arith;Ast.Access("y")]))
 
   in 
   let fact = 
 
-    Ast.Letfun("fact",["n"],Ast.If(
+    Ast.Letfun("fact","n",Ast.If(
         Ast.Binop(
           Ast.Equal,
           Ast.Den("n"),
@@ -38,7 +38,7 @@ let () =
           Ast.Den("n"),
           Ast.Call(
             Ast.Den("fact"),
-            [Ast.Binop(Ast.Minus,Ast.Den("n"),Ast.Eint(1))])))
+            Ast.Binop(Ast.Minus,Ast.Den("n"),Ast.Eint(1)))))
               ,expr)
   in
   evaluate fact

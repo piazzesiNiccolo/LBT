@@ -1,3 +1,4 @@
 (test
- (name hw1)
- (libraries qcheck))
+ (name tests)
+ (package hw1)
+ (libraries hw1 qcheck))

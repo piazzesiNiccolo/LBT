@@ -44,24 +44,24 @@ let rec  eval (env:value Env.t)    =
       | v ->
         let new_env = Env.bind env id v in
         e2 |> eval new_env  )
-  | Letfun(f,args,body,lbody) -> 
+  | Letfun(f,arg,body,lbody) -> 
     (
-      let benv = Closure(Some f,args,body,env)  |> Env.bind  env f in
+      let benv = Closure(Some f,arg,body,env)  |> Env.bind  env f in
       eval benv  lbody 
     )
   | Lambda (i,e) -> Closure(None,i,e, env)
-  | Call (f,args) -> 
+  | Call (f,arg) -> 
     (match eval env  f with 
-     | Closure(f,xs,body,fdeclenv) -> 
+     | Closure(_,x,body,fdeclenv) -> 
         (*
         Calling a function involves the following steps: 
         - evaluating arguments passed 
         - updating the environment with the  new values for the arguments 
         - evalutating body of function with the new environment
          *)
-       let x_vals = List.map (eval env  ) args in 
+       let x_val = eval env arg in 
        let new_env = Env.new_scope fdeclenv in
-       let fenv = List.fold_left2 (Env.bind) new_env xs x_vals  in
+       let fenv = Env.bind new_env x x_val  in
        eval fenv   body
      | Error e -> (
          let err = match e with
@@ -113,9 +113,9 @@ and eval_in_sandbox sandbox =
         let new_env = Env.bind sandbox.internal_env id v in
         let upd_sandbox = {sandbox with internal_env=new_env} in
         e2 |> eval_in_sandbox upd_sandbox  )
-  | Letfun(f,args,body,lbody) -> 
+  | Letfun(f,arg,body,lbody) -> 
     (
-      let benv = Closure(Some f,args,body,sandbox.internal_env)  |> Env.bind  sandbox.internal_env f in
+      let benv = Closure(Some f,arg,body,sandbox.internal_env)  |> Env.bind  sandbox.internal_env f in
       let upd_sandbox = {sandbox with internal_env=benv} in
       eval_in_sandbox upd_sandbox lbody
     )
@@ -129,19 +129,19 @@ and eval_in_sandbox sandbox =
       } in 
       eval_in_sandbox new_sandbox e
     else
-      Error(SecurityViolation(InvalidExecute))
-  | Call(f,args) -> 
+      Error(SecurityViolation(InvalidExecute) )
+  | Call(f,arg) -> 
     (match eval_in_sandbox sandbox  f with 
-     | Closure(f,xs,body,fdeclenv) -> 
+     | Closure(_,x,body,fdeclenv) -> 
         (*
         Calling a function involves the following steps: 
         - evaluating arguments passed 
         - updating the environment with the  new values for the arguments 
         - evalutating body of function with the new environment
          *)
-       let x_vals = List.map (eval_in_sandbox sandbox  ) args in 
+       let x_val = eval_in_sandbox sandbox arg in 
        let new_env = Env.new_scope fdeclenv in
-       let fenv = List.fold_left2 (Env.bind) new_env xs x_vals  in
+       let fenv = Env.bind new_env x x_val  in
        let upd_sandbox = {sandbox with internal_env = fenv} in
        eval_in_sandbox upd_sandbox  body
 

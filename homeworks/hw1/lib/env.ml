@@ -25,4 +25,4 @@ let bind table symbol info =
     let current = List.hd table in
     match Hashtbl.find_opt current symbol with
         | None    -> Hashtbl.add current symbol info; table
-        | Some(v) -> raise DuplicateEntry
+        | Some(_) -> raise DuplicateEntry
