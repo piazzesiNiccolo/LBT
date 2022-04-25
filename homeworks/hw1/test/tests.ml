@@ -64,16 +64,16 @@ let is_insecure exp =
 
 let test_security_violation = 
   QCheck2.Test.make ~name:"security violations are always captured" 
-                    ~count:1000 
+                    ~count:1000
                     ~print:Print_utils.print_exp
-                    Generators.generate_insecure_exp
+                    (Generators.generateInsecureExp 3 [] Tint)
                     is_insecure;;
 
 let test_secure_expressions = 
   QCheck2.Test.make ~name:"secure expressions never raises security violations" 
                     ~count:1000 
                     ~print:Print_utils.print_exp
-                    Generators.generate_secure_exp
+                    (Generators.generateSecureExp 10 [] Generators.randomBaseType)
                     (fun e -> not (is_insecure e));;
 
 QCheck_runner.run_tests  ~colors:true ~verbose:true

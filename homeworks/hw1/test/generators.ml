@@ -1,9 +1,10 @@
 open Hw1.Ast
 open Hw1
-open QCheck
+module Gen = QCheck2.Gen
+
 type ttype = Tint | Tbool | Tfun of ttype *ttype
 
-type gamma =  (ttype,ide) Hashtbl.t 
+type gamma =  (ide*ttype) list
 
 
 
@@ -13,16 +14,12 @@ type gamma =  (ttype,ide) Hashtbl.t
     QCheck.Gen.char_range 'a' 'z'
     |> QCheck.Gen.list
 
-let trim_ctx = List.fold_left (fun acc e -> if List.exists (fun (x,_) -> x = fst e ) acc then acc else e::acc) [] 
+  let trim_ctx = List.fold_left (fun acc e -> if List.exists (fun (x,_) -> x = fst e ) acc then acc else e::acc) [] 
 
 
-let optOneofl = 
-function
-|[] ->[]
-| xs -> [QCheck2.Gen.oneofl]
 
 
-let pickVar ctx typ = 
+  let pickVar ctx typ = 
     let getVars ctx typ = 
     ctx 
     |> trim_ctx
@@ -34,23 +31,208 @@ let pickVar ctx typ =
     optOneofl(getVars ctx typ)
 
 *)
-let int_lit n = Eint n
 
-let bool_lit b = Ebool b
-let exp = 
-    SandboxExecute(
-    Letfun(
-        "f",
-        "z",
+let optOneofl = 
+  function
+  |[] ->[]
+  | xs -> [QCheck2.Gen.oneofl xs]
+
+let distinctVals l = List.fold_right (fun e acc -> if List.mem e acc then acc else e::acc) l []
+
+
+let genIdent =  Gen.small_string ~gen:(Gen.char_range 'a' 'z')
+
+let randomBaseType = Gen.generate1 (Gen.oneofl ([Tint; Tbool]))
+
+let pickType (ctx:gamma) =
+  ctx
+  |> List.map snd 
+  |> distinctVals 
+  |> List.append [Tint;Tbool] 
+  |> Gen.oneofl
+
+
+let pickVar (ctx:gamma) (t:ttype) = 
+  ctx 
+  |> List.filter (fun (_,ty) -> t=ty )
+  |> List.map fst 
+  |> distinctVals 
+  |> List.map (fun s -> Den s)
+  |> optOneofl
+
+let genPermission = Gen.oneof[
+    Gen.map (fun s -> Access  s) (genIdent)
+  ; Gen.pure Execute
+  ; Gen.pure Arith
+  ]
+let generatePermissions = genPermission |> Gen.small_list
+
+let intLit n = Eint n
+
+let boolLit b = Ebool b
+
+let genIntLit = Gen.map intLit Gen.nat
+let genBoolLit = Gen.map boolLit Gen.bool 
+
+let generate_secure_exp =Gen.frequency[1,genIntLit; 1,genBoolLit]
+
+let rec genLambda size ctx t1 t2 = 
+  let x = Gen.generate1 genIdent in 
+  let gt = 
+    Gen.generate1 
+      (genTerm size ((x,t1)::ctx)  t2)
+  in 
+  Gen.pure (Lambda(x,gt))
+
+and genBinOp size ctx t =
+  let op = match t with 
+    | Tint -> Gen.oneofl [Sum; Times; Minus;Divide]
+    | Tbool -> Gen.oneofl [Less; Greater; Equal]
+    | _ -> assert false
+  in 
+  let e1 = genTerm (size / 2) ctx Tint in 
+  let e2 = genTerm (size / 2) ctx Tint in 
+  Gen.pure(
+    Binop(
+      Gen.generate1 op,
+      Gen.generate1 e1, 
+      Gen.generate1 e2
+    )
+  )
+
+
+and genIf size ctx t =  
+  let guard = genTerm (size / 3) ctx Tbool in 
+  let thenBranch = genTerm (size / 3) ctx t in 
+  let elseBranch = genTerm (size / 3) ctx t in 
+  Gen.pure (
     If(
-        Call(Den("z"),Eint(3)),
+      Gen.generate1 guard,
+      Gen.generate1 thenBranch,
+      Gen.generate1 elseBranch
+    )
+  )
+
+and genLet size ctx t = 
+  let x = Gen.generate1 (genIdent) in 
+  let t1 = Gen.generate1 (pickType ctx) in 
+  let xVal = genTerm (size / 2) ctx t1 in 
+  let body = genTerm (size / 2) ((x,t1)::ctx) t in 
+  Gen.pure(
+    Let(
+      x,
+      Gen.generate1 xVal,
+      Gen.generate1 body
+    )
+  ) 
+
+and genLetFun size ctx t = 
+  let f = Gen.generate1 (genIdent) in 
+  let x = Gen.generate1 (genIdent) in 
+  let t1 = Gen.generate1 (pickType ctx) in
+  let t2 = Gen.generate1 (pickType ctx) in
+  let funBody = genTerm (size / 2) ((f,Tfun(t1,t2))::(x,t1):: ctx) t2 in 
+  let b = genTerm (size / 2) ((f,Tfun(t1,t2)):: ctx) t in 
+  Gen.pure(
+    Letfun(
+      f,
+      x,
+      Gen.generate1 funBody,
+      Gen.generate1 b
+    )
+  )
+and genCall size ctx t = 
+  let t1 = Gen.generate1 (pickType ctx) in 
+  let funTerm = genTerm (size / 2) ctx (Tfun(t1,t)) in 
+  let param = genTerm (size / 2) ctx t1 in 
+  Gen.pure 
+    (
+      Call(
+        Gen.generate1 funTerm,
+        Gen.generate1 param
+      )
+    )
+
+
+and genCompTerm size ctx t= Gen.oneof[
+    genLet size ctx t;
+    genLetFun size ctx t;
+    genCall size ctx t;
+    genIf size ctx t;
+
+  ]
+
+and genTerm size ctx  = 
+  function
+  | Tint -> 
+    if size > 0 then 
+      Gen.oneof ([
+        genIntLit;
+        genBinOp size ctx Tint;
+        genCompTerm size ctx Tint;
+      ] @ pickVar ctx Tint)
+    else 
+      Gen.oneof (genIntLit :: pickVar ctx Tint)
+  | Tbool -> 
+    if size > 0 then 
+      Gen.oneof ([
+        genBoolLit;
+        genBinOp size ctx Tbool;
+        genCompTerm size ctx Tbool;
+      ] @ pickVar ctx Tbool)
+    else 
+      Gen.oneof (genBoolLit :: pickVar ctx Tbool)
+  | Tfun(t1,t2) as t-> 
+    if size > 0 then
+      Gen.oneof ([
+          genLambda size ctx t1 t2;
+          genCompTerm size ctx t
+        ] @ pickVar ctx t) 
+    else 
+      Gen.oneof (genLambda size ctx t1 t2 :: pickVar ctx t)
+
+
+and generateInsecureExp size ctx t= 
+let p = Gen.generate1 (genPermission) in
+let e  = match p with
+| Access x -> Gen.pure (Den x)
+| Execute -> 
+  let e = Gen.generate1(genTerm (size/2) ctx t) in 
+  Gen.pure (
+   SandboxExecute(e,[])
+  )
+| Arith -> 
+  let tb = randomBaseType in 
+  genBinOp size ctx tb
+in 
+let perms = Gen.generate1 generatePermissions |> List.filter (fun e -> e <> p) in
+  Gen.pure (
+    SandboxExecute(
+      SandboxExecute(Gen.generate1 e,[]),
+      perms
+      
+    ))
+
+
+and generateSecureExp size ctx t = 
+  genTerm size ctx t
+
+
+
+
+
+let exp = 
+  SandboxExecute(
+    Letfun(
+      "f",
+      "z",
+      If(
+        Binop(Less,Eint(2),Eint(3)),
         Binop(Sum,Eint(2),Eint(3)),
         Binop(Divide,Eint(4),Eint(1))
+      ),
+      Gen.generate1 generate_secure_exp
     ),
-    Call(Den("f"),Den("a"))
-    ),
-    [Arith;Execute;Access("f");Access("z");Access("a")])
+    Gen.generate1 generatePermissions |> distinctVals)
 
-let generate_insecure_exp = QCheck2.Gen.pure exp
 
-let generate_secure_exp =QCheck2.Gen.frequency[1,QCheck2.Gen.map int_lit QCheck2.Gen.nat; 1,QCheck2.Gen.map bool_lit QCheck2.Gen.bool]

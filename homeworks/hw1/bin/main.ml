@@ -2,6 +2,7 @@ open Hw1
 
 let rec err_to_string = function 
   | Ast.SecurityViolation e -> "SECURITY VIOLATION: " ^ err_to_string e
+  | Ast.DivisionByZero -> "cannot divide by zero"
   | Ast.InvalidExecute -> "Cannot call execute from another execute"
   | Ast.InvalidAccess x -> "Cant access " ^ Option.get x
   | Ast.InvalidCall f -> "Invalid call of function " ^ Option.fold ~none:"anonymous" ~some:Fun.id f

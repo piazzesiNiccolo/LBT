@@ -30,6 +30,7 @@ type error_kind =
   |InvalidAccess of ide option 
   |InvalidCall of ide option
   |InvalidExecute
+  | DivisionByZero
   |InvalidExpression
 
 

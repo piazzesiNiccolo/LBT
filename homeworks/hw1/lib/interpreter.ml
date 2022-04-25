@@ -6,6 +6,7 @@ let evaluate_binop op v1 v2 =
   | Sum, Int n1, Int n2 -> Int (n1 + n2)
   | Minus, Int n1, Int n2 -> Int (n1 - n2)
   | Times, Int n1, Int n2 -> Int (n1 * n2)
+  | Divide, Int _, Int 0 -> Error(DivisionByZero)
   | Divide, Int n1, Int n2 -> Int (n1 / n2)
   | Equal, Int n1, Int n2 -> Bool (n1  = n2)
   | Less, Int n1, Int n2 -> Bool (n1  < n2)
