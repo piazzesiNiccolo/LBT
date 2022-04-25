@@ -1,3 +1,8 @@
+(*
+
+The sandbox used to check for insecure mobile code. 
+ *)
+
 type ('env, 'action) sandbox = {
   permissions : 'action list;
   external_env : 'env;

@@ -3,7 +3,7 @@ type ide = string
 (* We model all binary operators with the type binop, so to handle them in a more concise manner inside the interpreter *)
 
 type binop = Sum | Times | Minus | Divide | Equal | Less | Greater
-type action = Access of ide | Arith | Execute
+type action = Access of ide | Arith | Execute (*security relevant actions *)
 
 type exp =
   | Eint of int

@@ -63,6 +63,8 @@ let rec eval (env : value Env.t) = function
       in
       eval_in_sandbox sandbox e
 
+
+(* Sandbox evaluation. Performs all the necessary checks before evaluating expressions. *)
 and eval_in_sandbox sandbox = function
   | Den x as e ->
       let value = Env.lookup sandbox.internal_env x in

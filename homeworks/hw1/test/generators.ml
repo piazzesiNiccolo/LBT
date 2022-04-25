@@ -25,13 +25,17 @@ let distinctVals l =
 let genIdent = small_string ~gen:(char_range 'a' 'z')
 let randomBaseType = generate1 (oneofl [ Tint; Tbool ])
 
+(*generate a random valid type from the context *)
 let pickType (ctx : gamma) =
   ctx |> List.map snd |> distinctVals |> List.append [ Tint; Tbool ] |> oneofl
 
+(* Generate a random valid variable access *)
 let pickVar (ctx : gamma) (t : ttype) =
   ctx
   |> List.filter (fun (_, ty) -> t = ty)
-  |> List.map fst |> distinctVals
+  |> List.map fst
+  |> distinctVals
+     (*distinct vals remove duplicates and leaves only the leftmost variable. This is used to hide all previous values, simulating scoping *)
   |> List.map (fun s -> Den s)
   |> optOneofl
 
@@ -47,6 +51,12 @@ let boolLit b = Ebool b
 let genIntLit = map intLit nat
 let genBoolLit = map boolLit bool
 
+(*Lambda expression generation:
+
+  - generate a random parameter name
+  - update the typing context
+  - generate a random body
+*)
 let rec genLambda size ctx t1 t2 =
   genIdent >>= fun x ->
   map (fun e -> Lambda (x, e)) (genExp size ((x, t1) :: ctx) t2)
@@ -68,6 +78,11 @@ and genIf size ctx t =
   let elseBranch = genExp (size / 3) ctx t in
   map3 (fun g e1 e2 -> If (g, e1, e2)) guard thenBranch elseBranch
 
+(* Let generation:
+   - create a new name with a random existing type
+   - generate a random value expression with the same type
+   - add the variable to the context and generate a random body  with the correct passed type
+*)
 and genLet size ctx t =
   let newVar = ( and+ ) genIdent (pickType ctx) in
   newVar >>= fun (x, t1) ->
@@ -75,6 +90,9 @@ and genLet size ctx t =
   let body = genExp (size / 2) ((x, t1) :: ctx) t in
   map2 (fun xVal body -> Let (x, xVal, body)) xVal body
 
+(*
+Similar to let, with the addition of also generating a random function name and body
+ *)
 and genLetFun size ctx t =
   genIdent >>= fun f ->
   genIdent >>= fun x ->
@@ -84,12 +102,18 @@ and genLetFun size ctx t =
   let b = genExp (size / 2) ((f, Tfun (t1, t2)) :: ctx) t in
   map2 (fun funBody b -> Letfun (f, x, funBody, b)) funBody b
 
+(* Call expression generation:
+   - generate a random function expression that evaluates to a value of type t
+   - generate a random value for the parameter
+*)
 and genCall size ctx t =
   pickType ctx >>= fun t1 ->
   let funExp = genExp (size / 2) ctx (Tfun (t1, t)) in
   let param = genExp (size / 2) ctx t1 in
   map2 (fun funExp param -> Call (funExp, param)) funExp param
 
+(* Composite expression generation: pick randomly  between a Let, a Letfun, a Call or an If.
+   Execute are excluded to simplify generation and because we test it with an alternative generator.*)
 and genCompExp size ctx t =
   oneof
     [
@@ -99,33 +123,49 @@ and genCompExp size ctx t =
       genIf size ctx t;
     ]
 
+(*
+The generic expression generator.  Takes a "size" of the expression to generate, a typing context and the type of the expression that we want. 
+
+Picks the correct generator and creates a valid expression.
+ *)
 and genExp size ctx = function
   | Tint ->
       if size > 0 then
+        (* Int recursive case. Can pick a literal or a integer variable but also generate a binary operation
+           or a composite expression that will still evaluate to an integer*)
         frequency
           ([
-             (2, genIntLit);
-             (2, genBinOp size ctx Tint);
+             (1, genIntLit);
+             (1, genBinOp size ctx Tint);
              (1, genCompExp size ctx Tint);
            ]
           @ List.map (fun v -> (1, v)) (pickVar ctx Tint))
-      else oneof (genIntLit :: pickVar ctx Tint)
+      else
+        (*int base case. Pick a literal or a integer variable *)
+        oneof (genIntLit :: pickVar ctx Tint)
   | Tbool ->
       if size > 0 then
+        (* Bool recursive case. Can pick a literal or a boolean variable but also generate a binary operation
+           or a composite expression that will still evaluate to a boolean *)
         frequency
           ([
-             (2, genBoolLit);
-             (2, genBinOp size ctx Tbool);
+             (1, genBoolLit);
+             (1, genBinOp size ctx Tbool);
              (1, genCompExp size ctx Tbool);
            ]
           @ List.map (fun v -> (1, v)) (pickVar ctx Tbool))
-      else oneof (genBoolLit :: pickVar ctx Tbool)
+      else
+        (*Boolean  base case. Pick a literal or a boolean variable *)
+        oneof (genBoolLit :: pickVar ctx Tbool)
   | Tfun (t1, t2) as t ->
       if size > 0 then
+        (* Fun recursive case. Can generates a lambda, a composite expression, or access a Fun variable.*)
         frequency
-          ([ (2, genLambda size ctx t1 t2); (1, genCompExp size ctx t) ]
+          ([ (1, genLambda size ctx t1 t2); (1, genCompExp size ctx t) ]
           @ List.map (fun v -> (1, v)) (pickVar ctx t))
-      else oneof (genLambda size ctx t1 t2 :: pickVar ctx t)
+      else
+        (*fun base case. Generate a lambda or pick a Fun variable *)
+        oneof (genLambda size ctx t1 t2 :: pickVar ctx t)
 
 and filterPerms i p permissions =
   (*
@@ -147,6 +187,7 @@ before trying to access it.
 the nested permission must be ignored we can put an empty list
 
 - To test invalid use of arithmetics we generate a random binary operation that evaluates to an integer or a boolean
+ 
  *)
 and genSandboxExp ?insecure:(i = true) size ctx t =
   let tb = randomBaseType in

@@ -12,7 +12,7 @@
 (maintainers "Maintainer Name")
 
 (license LICENSE)
-
+(formatting (enabled_for ocaml))
 (documentation https://url/to/documentation)
 
 (package

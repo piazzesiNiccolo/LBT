@@ -1,5 +1,10 @@
 open Hw1.Ast
 
+(*
+Printing utils to debug test errors.  It converts an ast expression to a pseudo code representation, which makes it 
+easier to read and find errors in.
+
+ *)
 let indent i = String.make (4 * i) ' '
 
 let string_of_op = function
