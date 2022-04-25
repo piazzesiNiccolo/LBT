@@ -18,8 +18,8 @@ clean:
 	dune clean
 
 test:
-	dune test
+	dune test -f
 
 test-release:
-	dune test --profile release
-.PHONY: clean default native
+	dune test --profile release -f
+.PHONY: clean default native native-release exec exec-release test test-release 
