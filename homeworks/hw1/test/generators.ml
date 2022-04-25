@@ -1,5 +1,4 @@
 open Hw1.Ast
-open Hw1
 module Gen = QCheck2.Gen
 
 type ttype = Tint | Tbool | Tfun of ttype *ttype
@@ -191,8 +190,8 @@ and genTerm size ctx  =
     else 
       Gen.oneof (genLambda size ctx t1 t2 :: pickVar ctx t)
 
-
-and generateInsecureExp size ctx t= 
+ 
+and generateSandboxExp ?insecure:(i=true) size ctx t= 
 let p = Gen.generate1 (genPermission) in
 let e  = match p with
 | Access x -> Gen.pure (Den x)
@@ -205,17 +204,27 @@ let e  = match p with
   let tb = randomBaseType in 
   genBinOp size ctx tb
 in 
-let perms = Gen.generate1 generatePermissions |> List.filter (fun e -> e <> p) in
-  Gen.pure (
+let perms = 
+if i then
+  Gen.generate1 generatePermissions |> List.filter (fun e -> e <> p)
+else 
+     p::Gen.generate1 generatePermissions   
+in
+ Gen.pure(
     SandboxExecute(
-      SandboxExecute(Gen.generate1 e,[]),
+      Gen.generate1 e,
       perms
-      
-    ))
+    )
+  )
+
+and generateInsecureExp size ctx t =  generateSandboxExp size ctx t
 
 
-and generateSecureExp size ctx t = 
-  genTerm size ctx t
+and generateSecureExp size ctx t =  
+Gen.oneof[
+genTerm size ctx t;
+generateSandboxExp ~insecure:false size ctx t
+]
 
 
 
