@@ -54,7 +54,7 @@ let genPermission = oneof[
   ; pure Execute
   ; pure Arith
   ]
-let generatePermissions = genPermission |> small_list
+let genPermissions = genPermission |> small_list
 
 
 (* Small generators for literal values *)
@@ -182,7 +182,7 @@ the nested permission must be ignored we can put an empty list
 
 - To test invalid use of arithmetics we generate a random binary operation that evaluates to an integer or a boolean
  *)
-and generateSandboxExp ?insecure:(i=true) size ctx t= 
+and genSandboxExp ?insecure:(i=true) size ctx t= 
   let tb = randomBaseType in
   let exprGens = (and+) (genExp (size/2) ctx t) (genBinOp size ctx tb) in 
   map3 (fun (e1,e2) p perms ->
@@ -199,21 +199,21 @@ and generateSandboxExp ?insecure:(i=true) size ctx t=
         e,
         filterPerms i p perms
       )
-    ) exprGens genPermission generatePermissions
+    ) exprGens genPermission genPermissions
 
 
 (* by default generateSandboxExp creates insecure expressions so we can simply call it *)
-and generateInsecureExp size ctx t =  generateSandboxExp size ctx t
+and genInsecureExp size ctx t =  genSandboxExp size ctx t
 
 (*
 A secure expression is a normal expression not wrapped in an execute, 
 or an execute expression with the right permissions set up
  *)
 
-and generateSecureExp size ctx t =  
+and genSecureExp size ctx t =  
   oneof[
     genExp size ctx t;
-    generateSandboxExp ~insecure:false size ctx t
+    genSandboxExp ~insecure:false size ctx t
   ]
 
 
