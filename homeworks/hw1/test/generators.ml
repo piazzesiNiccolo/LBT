@@ -84,7 +84,7 @@ and genIf size ctx t =
    - add the variable to the context and generate a random body  with the correct passed type
 *)
 and genLet size ctx t =
-  genIdent >>= fun x -> 
+  genIdent >>= fun x ->
   pickType ctx >>= fun t1 ->
   let xVal = genExp (size / 2) ctx t1 in
   let body = genExp (size / 2) ((x, t1) :: ctx) t in
