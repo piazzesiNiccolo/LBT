@@ -84,8 +84,8 @@ and genIf size ctx t =
    - add the variable to the context and generate a random body  with the correct passed type
 *)
 and genLet size ctx t =
-  let newVar = ( and+ ) genIdent (pickType ctx) in
-  newVar >>= fun (x, t1) ->
+  genIdent >>= fun x -> 
+  pickType ctx >>= fun t1 ->
   let xVal = genExp (size / 2) ctx t1 in
   let body = genExp (size / 2) ((x, t1) :: ctx) t in
   map2 (fun xVal body -> Let (x, xVal, body)) xVal body
@@ -96,8 +96,8 @@ Similar to let, with the addition of also generating a random function name and 
 and genLetFun size ctx t =
   genIdent >>= fun f ->
   genIdent >>= fun x ->
-  let pickTypes = ( and* ) (pickType ctx) (pickType ctx) in
-  pickTypes >>= fun (t1, t2) ->
+  pickType ctx >>= fun t1 ->
+  pickType ctx >>= fun t2 ->
   let funBody = genExp (size / 2) ((x, t1) :: ctx) t2 in
   let b = genExp (size / 2) ((f, Tfun (t1, t2)) :: ctx) t in
   map2 (fun funBody b -> Letfun (f, x, funBody, b)) funBody b
