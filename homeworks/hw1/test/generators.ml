@@ -59,8 +59,7 @@ let genBoolLit = map boolLit bool
 *)
 let rec genLambda size ctx t1 t2 =
   genIdent >>= fun x ->
-  (genExp size ((x, t1) :: ctx) t2) >>= fun e -> 
-  Lambda (x, e) |> return
+  genExp size ((x, t1) :: ctx) t2 >>= fun e -> Lambda (x, e) |> return
 
 and genBinOp size ctx t =
   let op =
@@ -71,15 +70,13 @@ and genBinOp size ctx t =
   in
   op >>= fun op ->
   genExp (size / 2) ctx Tint >>= fun e1 ->
-  genExp (size / 2) ctx Tint >>= fun e2 ->
-  Binop (op, e1, e2) |> return
+  genExp (size / 2) ctx Tint >>= fun e2 -> Binop (op, e1, e2) |> return
 
 and genIf size ctx t =
-
   genExp (size / 3) ctx Tbool >>= fun guard ->
-  genExp (size / 3) ctx t  >>= fun thenBranch ->
-  genExp (size / 3) ctx t  >>= fun elseBranch ->
-  If (guard, thenBranch, elseBranch) |> return 
+  genExp (size / 3) ctx t >>= fun thenBranch ->
+  genExp (size / 3) ctx t >>= fun elseBranch ->
+  If (guard, thenBranch, elseBranch) |> return
 
 (* Let generation:
    - create a new name with a random existing type
@@ -112,8 +109,7 @@ and genLetFun size ctx t =
 and genCall size ctx t =
   pickType ctx >>= fun t1 ->
   genExp (size / 2) ctx (Tfun (t1, t)) >>= fun funExp ->
-  genExp (size / 2) ctx t1  >>= fun param ->
-  Call (funExp, param) |> return
+  genExp (size / 2) ctx t1 >>= fun param -> Call (funExp, param) |> return
 
 (* Composite expression generation: pick randomly  between a Let, a Letfun, a Call or an If.
    Execute are excluded to simplify generation and because we test it with an alternative generator.*)
