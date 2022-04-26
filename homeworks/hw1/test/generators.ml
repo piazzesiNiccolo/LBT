@@ -59,7 +59,8 @@ let genBoolLit = map boolLit bool
 *)
 let rec genLambda size ctx t1 t2 =
   genIdent >>= fun x ->
-  map (fun e -> Lambda (x, e)) (genExp size ((x, t1) :: ctx) t2)
+  (genExp size ((x, t1) :: ctx) t2) >>= fun e -> 
+  Lambda (x, e) |> return
 
 and genBinOp size ctx t =
   let op =
@@ -68,15 +69,17 @@ and genBinOp size ctx t =
     | Tbool -> oneofl [ Less; Greater; Equal ]
     | _ -> assert false (*should never be called with Tfun *)
   in
-  let e1 = genExp (size / 2) ctx Tint in
-  let e2 = genExp (size / 2) ctx Tint in
-  map3 (fun op e1 e2 -> Binop (op, e1, e2)) op e1 e2
+  op >>= fun op ->
+  genExp (size / 2) ctx Tint >>= fun e1 ->
+  genExp (size / 2) ctx Tint >>= fun e2 ->
+  Binop (op, e1, e2) |> return
 
 and genIf size ctx t =
-  let guard = genExp (size / 3) ctx Tbool in
-  let thenBranch = genExp (size / 3) ctx t in
-  let elseBranch = genExp (size / 3) ctx t in
-  map3 (fun g e1 e2 -> If (g, e1, e2)) guard thenBranch elseBranch
+
+  genExp (size / 3) ctx Tbool >>= fun guard ->
+  genExp (size / 3) ctx t  >>= fun thenBranch ->
+  genExp (size / 3) ctx t  >>= fun elseBranch ->
+  If (guard, thenBranch, elseBranch) |> return 
 
 (* Let generation:
    - create a new name with a random existing type
@@ -86,9 +89,9 @@ and genIf size ctx t =
 and genLet size ctx t =
   genIdent >>= fun x ->
   pickType ctx >>= fun t1 ->
-  let xVal = genExp (size / 2) ctx t1 in
-  let body = genExp (size / 2) ((x, t1) :: ctx) t in
-  map2 (fun xVal body -> Let (x, xVal, body)) xVal body
+  genExp (size / 2) ctx t1 >>= fun xVal ->
+  genExp (size / 2) ((x, t1) :: ctx) t >>= fun body ->
+  Let (x, xVal, body) |> return
 
 (*
 Similar to let, with the addition of also generating a random function name and body
@@ -98,9 +101,9 @@ and genLetFun size ctx t =
   genIdent >>= fun x ->
   pickType ctx >>= fun t1 ->
   pickType ctx >>= fun t2 ->
-  let funBody = genExp (size / 2) ((x, t1) :: ctx) t2 in
-  let b = genExp (size / 2) ((f, Tfun (t1, t2)) :: ctx) t in
-  map2 (fun funBody b -> Letfun (f, x, funBody, b)) funBody b
+  genExp (size / 2) ((x, t1) :: ctx) t2 >>= fun funBody ->
+  genExp (size / 2) ((f, Tfun (t1, t2)) :: ctx) t >>= fun b ->
+  Letfun (f, x, funBody, b) |> return
 
 (* Call expression generation:
    - generate a random function expression that evaluates to a value of type t
@@ -108,9 +111,9 @@ and genLetFun size ctx t =
 *)
 and genCall size ctx t =
   pickType ctx >>= fun t1 ->
-  let funExp = genExp (size / 2) ctx (Tfun (t1, t)) in
-  let param = genExp (size / 2) ctx t1 in
-  map2 (fun funExp param -> Call (funExp, param)) funExp param
+  genExp (size / 2) ctx (Tfun (t1, t)) >>= fun funExp ->
+  genExp (size / 2) ctx t1  >>= fun param ->
+  Call (funExp, param) |> return
 
 (* Composite expression generation: pick randomly  between a Let, a Letfun, a Call or an If.
    Execute are excluded to simplify generation and because we test it with an alternative generator.*)
