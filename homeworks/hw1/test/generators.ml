@@ -62,13 +62,12 @@ let rec genLambda size ctx t1 t2 =
   Lambda (x, e) |> return
 
 and genBinOp size ctx t =
-  let opGen =
+  let* op =
     match t with
     | Tint -> oneofl [ Sum; Times; Minus; Divide ]
     | Tbool -> oneofl [ Less; Greater; Equal ]
     | _ -> assert false (*should never be called with Tfun *)
   in
-  let* op = opGen in
   let* e1 = genExp (size / 2) ctx Tint in
   let* e2 = genExp (size / 2) ctx Tint in
   Binop (op, e1, e2) |> return
