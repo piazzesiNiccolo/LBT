@@ -33,9 +33,8 @@ let pickType (ctx : gamma) =
 let pickVar (ctx : gamma) (t : ttype) =
   ctx
   |> List.filter (fun (_, ty) -> t = ty)
-  |> List.map fst
-  |> distinctVals
-     (*distinct vals remove duplicates and leaves only the leftmost variable. This is used to hide all previous values, simulating scoping *)
+  |> List.map fst |> distinctVals
+  (*distinct vals remove duplicates and leaves only the leftmost variable. This is used to hide all previous values, simulating scoping *)
   |> List.map (fun s -> Den s)
   |> optOneofl
 
@@ -58,24 +57,26 @@ let genBoolLit = map boolLit bool
   - generate a random body
 *)
 let rec genLambda size ctx t1 t2 =
-  genIdent >>= fun x ->
-  genExp size ((x, t1) :: ctx) t2 >>= fun e -> Lambda (x, e) |> return
+  let* x = genIdent in
+  let* e = genExp size ((x, t1) :: ctx) t2 in
+  Lambda (x, e) |> return
 
 and genBinOp size ctx t =
-  let op =
+  let opGen =
     match t with
     | Tint -> oneofl [ Sum; Times; Minus; Divide ]
     | Tbool -> oneofl [ Less; Greater; Equal ]
     | _ -> assert false (*should never be called with Tfun *)
   in
-  op >>= fun op ->
-  genExp (size / 2) ctx Tint >>= fun e1 ->
-  genExp (size / 2) ctx Tint >>= fun e2 -> Binop (op, e1, e2) |> return
+  let* op = opGen in
+  let* e1 = genExp (size / 2) ctx Tint in
+  let* e2 = genExp (size / 2) ctx Tint in
+  Binop (op, e1, e2) |> return
 
 and genIf size ctx t =
-  genExp (size / 3) ctx Tbool >>= fun guard ->
-  genExp (size / 3) ctx t >>= fun thenBranch ->
-  genExp (size / 3) ctx t >>= fun elseBranch ->
+  let* guard = genExp (size / 3) ctx Tbool in
+  let* thenBranch = genExp (size / 3) ctx t in
+  let* elseBranch = genExp (size / 3) ctx t in
   If (guard, thenBranch, elseBranch) |> return
 
 (* Let generation:
@@ -84,22 +85,22 @@ and genIf size ctx t =
    - add the variable to the context and generate a random body  with the correct passed type
 *)
 and genLet size ctx t =
-  genIdent >>= fun x ->
-  pickType ctx >>= fun t1 ->
-  genExp (size / 2) ctx t1 >>= fun xVal ->
-  genExp (size / 2) ((x, t1) :: ctx) t >>= fun body ->
+  let* x = genIdent in
+  let* t1 = pickType ctx in
+  let* xVal = genExp (size / 2) ctx t1 in
+  let* body = genExp (size / 2) ((x, t1) :: ctx) t in
   Let (x, xVal, body) |> return
 
 (*
 Similar to let, with the addition of also generating a random function name and body
  *)
 and genLetFun size ctx t =
-  genIdent >>= fun f ->
-  genIdent >>= fun x ->
-  pickType ctx >>= fun t1 ->
-  pickType ctx >>= fun t2 ->
-  genExp (size / 2) ((x, t1) :: ctx) t2 >>= fun funBody ->
-  genExp (size / 2) ((f, Tfun (t1, t2)) :: ctx) t >>= fun b ->
+  let* f = genIdent in
+  let* x = genIdent in
+  let* t1 = pickType ctx in
+  let* t2 = pickType ctx in
+  let* funBody = genExp (size / 2) ((x, t1) :: ctx) t2 in
+  let* b = genExp (size / 2) ((f, Tfun (t1, t2)) :: ctx) t in
   Letfun (f, x, funBody, b) |> return
 
 (* Call expression generation:
@@ -107,9 +108,10 @@ and genLetFun size ctx t =
    - generate a random value for the parameter
 *)
 and genCall size ctx t =
-  pickType ctx >>= fun t1 ->
-  genExp (size / 2) ctx (Tfun (t1, t)) >>= fun funExp ->
-  genExp (size / 2) ctx t1 >>= fun param -> Call (funExp, param) |> return
+  let* t1 = pickType ctx in
+  let* funExp = genExp (size / 2) ctx (Tfun (t1, t)) in
+  let* param = genExp (size / 2) ctx t1 in
+  Call (funExp, param) |> return
 
 (* Composite expression generation: pick randomly  between a Let, a Letfun, a Call or an If.
    Execute are excluded to simplify generation and because we test it with an alternative generator.*)
@@ -173,7 +175,6 @@ and filterPerms i p permissions =
   if i then permissions |> List.filter (fun e -> e <> p) |> distinctVals
   else Arith :: Execute :: p :: permissions |> distinctVals
 
-and getAccessExp x = Den x
 
 (*
 To test the security properties we create a bunch of simple, but security relevant programs: 
@@ -186,7 +187,7 @@ before trying to access it.
 the nested permission must be ignored we can put an empty list
 
 - To test invalid use of arithmetics we generate a random binary operation that evaluates to an integer or a boolean
- 
+
  *)
 and genSandboxExp ?insecure:(i = true) size ctx t =
   let tb = randomBaseType in
