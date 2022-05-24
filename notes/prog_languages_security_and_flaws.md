@@ -33,7 +33,7 @@ The single equals means that we are assigning the val 0 to uid instead of checki
 Unwanted side effect: uid becomes root, assignment evaluates to 0 which is logically false and the retval is never put to einval.
 
 First solution: type systems 
-BUt systems are usually incomplete, meaning that the reject valid programs.
+But type systems are  incomplete, meaning that the reject valid programs.
 
 Also weak type systems may create more problems than no type system at all (PHP, JavaScript) -> FALSE SENSE OF SECURITY.
 
