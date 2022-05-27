@@ -35,3 +35,6 @@ type value =
   | Error of error_kind
 (* a closure is made of the function name, the function argument, the body of the function and the symbol table with the values captured. We assume for simplicity to have only one parameter per function,
    which is similar to function abstractions in the lambda calculus where we obtain multi parameter functions by chaining single parameter ones.*)
+
+
+
