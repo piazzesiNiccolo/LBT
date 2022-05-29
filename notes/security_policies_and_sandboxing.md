@@ -123,3 +123,37 @@ co-recursively enumerable policies
 IRM 
 
 Take untrusted program code and transform it adding  the inlined reference monitor  in a finite time. Transformed code must satisfy a specified policy and the behavior of code must be preserved. The main advantages are that runtime overhead AND load-time overhead are minimal.
+
+
+# Sandboxes and access control in programming languages
+
+
+One technique used in many levels of security is **compartmentalization**, which consists in separating and isolating parts of a system to decouple them and better enforce safety and security between them. 
+
+The property of **isolation** can be broken down into a combination of confidentiality and integrity od data and code. The general way to enforce isolation is through sandboxes, which can be seen as an isolated environment where to execute untrusted process to protect a trusted one. Multiple sandboxes can coexist and there can be a hierarchy of compartments.
+(VMs, containers,...)
+
+
+**Issues**
+
+1. Defining the TCB. A sandbox reduces the tcb of the executed functionality, BUT increases the tcb with the enforcement mechanism (What happens if it is compromised? privilege escalation etc..)
+2. Can we control compartments with specific policies? How expressive and complex are these policies and can we handle them?
+3. Need a defined, small and simple interface to interact with environment.
+
+A compartment need a way to provide configurable access control mechanisms.
+
+**Classical OS Access control**
+
+Modern OS provides various form of compartmentalization and access control (processes, user and kernel space, access control rights,...) but they can be too complex depending on the context. Size of OS TCB is huge and has very complex interfaces. There is also no way to handle access control policies within a process, as processes are the computing units inside an operating system). Operating system are big programs that needs to handle a lot of functionalities and security issues, in amny cases it's a wrong choice to trust its mechanisms to define, configure, and enforce certain security policies.
+
+A better solution would be to have **access control primitives inside programming languages**
+
+
+Java stack inspection -> code-based access control.
+
+Permissions, protections domains and policies as language entities.
+
+Hardware sandboxes -> enclaves
+
+
+Capability machines...
