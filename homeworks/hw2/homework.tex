@@ -17,6 +17,7 @@
 
 \begin{document}
 \maketitle
+\frenchspacing
 
 \section*{Introduction}
 For this homework, i will present and discuss the paper "\textbf{MirChecker: Detecting Bugs in Rust Programs via Static Analysis}" by 
@@ -51,10 +52,13 @@ Second, LLVM API targets directly C/C++ and are then ported to Rust. Many compat
 a native representation. 
 
 
-\paragraph*{Static analyzer}
-\paragraph*{User interface} MirChecker is shipped as a cargo subcommand. 
-Cargo is Rust's official package manager
-
+\paragraph*{User interface} MirChecker is shipped as a subcommand of  
+Cargo, Rust's official package manager. This makes it possible to reuse the entire
+Rust compiler toolchain for dependency resolving. Dependency information is used 
+to distinguish between source files in the current crate (crates are how packages in Rust are called) and dependencies, which are ignored 
+by MirChecker for efficiency purposes. Tool invocation is highly customizable, with many options 
+to control the behavior of the analysis. Some of the options are shown in \autoref{mir-cli}.
+\begin{figure}[H]
 \begin{minted}{bash}
     cargo mir-checker --\ 
     --entry <entry-function-name>\
@@ -63,16 +67,50 @@ Cargo is Rust's official package manager
     --narrowing_iteration <N>\ 
     --suppress_warnings <S>
 \end{minted}
+    \caption{MirChecker example invocation}
+    \label{mir-cli}
+
+\end{figure}
+
+
+\paragraph*{Static analyzer}
+The analyzer is implemented as a custom callback function for the Rust compiler, and is 
+automatically called after all the necessary data structures are built. 
+
+The actual algorithm uses standard techniques from Abstract Interpretation.
+The CFG is first preprocessed to create a topological ordering of the basic blocks. After, the algorithm traverse the CFG according to the ordering 
+and iteratively executes \textit{Abstract Interpretation} until the result reaches a fix-point.
+In the following step, several bug detectors are called. These bug detectors use 
+constraint solving techniques to determine if some security conditions are violated or not. At the end, a series of 
+diagnostics are emitted to the users, leveraging the compiler infrastructure to provide clear and informative messages.
+\autoref{fig:hilev} provides a visualization of the entire process.
 \begin{figure}[H]
     \includegraphics[scale=0.5]{hilev.png}
-    \caption{High level view of Mir-Checker}
+    \caption{High level view of Mir-Checker architecture}
     \label{fig:hilev}
 \end{figure}
-\autoref{fig:hilev}
 \subsection*{Implementation}
 \subsection*{Benchmarks}
+MirChecker  was thoroughly tested both in precision and efficiency. The evaluation was performed
+in two steps. First, it was evaluated in a "supervised" environment, testing its capacity on a synthetic dataset 
+containing well known bugs. All the bugs (4 memory safety bugs, 6 runtime panics) where successfully detected. 
 
-\section*{Advantages}
+In the second phase, 
+MirChecker ability was judged in real life situations. A group of actual Rust crates was collected, with the requirement of having related code to 
+the tool itself. This meant collecting crates that perform integer arithmetic and/or use unsafe Rust. The results were pretty interesting: the tool managed to find
+17 real runtime panics and 16 real memory-safety problems. 
+
+On the bad side, it was noticed that most of the detected problems 
+were false positives. Although this is expected in static analysis, in order to have
+a more reliable analysis, an option to suppress specific classes of warnings was implemented. It should be mentioned that, even after warning suppression, there were two outliers (the \textbf{brotli} and \textbf{runes} crates) where the rate 
+of false positives stayed at 95\%.
+
+\paragraph*{Efficiency} In terms of efficiency, MirChecker was measured both in time and peak memory usage. It was observed that 
+the main factor affecting performance is the number of security conditions checked, especially numerical conditions. The choice of the numerical abstract domain 
+was found to be the critical tradeoff between efficiency and precision. Interval and linear congruence  consumed less resources but were not as precise as constraint-based domains 
+like octagon and polyhedra, which in turn required more memory and time. Another aspect tested was  the dead variable cleaning mechanism 
+employed by MirChecker. It was measured to improve performance by 
+ 10-15\% for constraint-based domains,  while having no major effect for linear congruence and interval domains. \section*{Advantages}
 
 \section*{Disadvantages}
 
