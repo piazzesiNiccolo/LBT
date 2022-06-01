@@ -126,33 +126,41 @@ employed by MirChecker. It was measured to improve performance by
  converting its internal assertions to a Z3 formula and "outsourcing" the actual solving. Not only does this makes the bug solving more robust, 
  it significantly simplifies MirChecker design, which can be focused on optimizing the fix-point algorithm, instead of having to add a custom internal solver.
 
+ \paragraph*{Type of bugs detected} Rust is a safe language, and as such does not suffer from the typical memory bugs or unexpected crashes. But, as demonstrated in the paper, 
+ it can still have various issues that are not natively captured by the type system. I find that the work proposed is extremely valuable in this regard. THe bugs addressed by MirChecker
+ are hard to manually detect, especially those that arise from an incorrect usage of \mintinline{rust}{unsafe}. Automating their recognition can improve to a great extent code safety, in situations 
+ where it is most required.
 \section*{Disadvantages}
 
 \paragraph*{Memory model}
 The memory model is, by admission of the authors, lightweight and syntax driven. MirChecker may distinguish 
 two  equivalent expressions used as memory addresses simply because the are syntactically different. This makes the analysis 
 less precise, and it forced the authors to employ the reduction rules seen before to try and mitigate the issue. The development of an improved
-memory model, maybe adapting known formal models  (e.g the concept of heaplets in separation logic), should be a top priority to  
+memory model, maybe adapting known formal models  (e.g the concept of heaplets in separation logic \cite{o2019separation}), should be a top priority to  
 increase the power of the analysis.
 
 \paragraph*{Ignoring Rust advanced features}
 For simplicity, MirChecker does not check more advanced features of rust such as dynamic dispatch, concurrent code and many others. While 
 this is understandable from a complexity point of view, i think it hinders the analyzer power and convenience. This is true especially for concurrency, 
-where problems like deadlocks when using \mintinline{rust}{Mutex<T>} or data races inside unsafe code could be automatically detected.
+where problems like deadlocks when using \mintinline{rust}{Mutex<T>}, or data races inside unsafe code could be automatically detected.
 
 \section*{Possible Improvements}
 
 \paragraph*{Increasing the number of problems checked}
 Right now MirChecker checks only integer operations and possible lifetime issues. 
-A first improvement would be to check for more problems. For example, the overflow 
+A first improvement would be to extend the  of bugs detected. For example, the overflow 
 analysis could be extended to floating point operations, which could be extremely valuable 
-to analyze math-intensive crates such as \textbf{ndarray} or \textbf{nalgebra}. Another possibility wou
+to analyze math-intensive crates such as \textbf{ndarray} or \textbf{nalgebra}.
 
 \paragraph*{Refinement}
-To mitigate the problem of false positives, the authors could employ a refinement mechanism. Refinement techniques 
-takes variou
+To mitigate the problem of false positives, the authors could employ a refinement mechanism. Refinement techniques are used to solve 
+this exact problem in abstract interpretation \cite{gulavani2006counterexample}\cite{bogomolov2017counterexample}, and they work by iteratively "concretizing" an abstract domain  until it is precise enough. 
+How much is "enough" depends on the context, and it could a configurable parameter of MirChecker.
 \paragraph*{Under-approximation instead of over-approximation}
-
-\bibliographystyle{plain}
+A high level improvement  on the general approach used could be made. Citing the authors, "our goal is to provide a useful bug detection tool rather
+than enforcing rigorous formal verification.". This is kind in contrast with the over-approximation technique used in the algorithm. Recent developments 
+in the formal methods community \cite{o2019incorrectness}\cite{murray2021incremental}\cite{le2022finding} have shown that using an under-approximation perspective can benefit bug detection. Losing soundness but gaining only true positive  alerts 
+is a tradeoff that might be beneficial in this context.
+\bibliographystyle{unsrt}
 \bibliography{bib.bib}
 \end{document}
