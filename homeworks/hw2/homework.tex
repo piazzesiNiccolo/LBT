@@ -110,11 +110,48 @@ the main factor affecting performance is the number of security conditions check
 was found to be the critical tradeoff between efficiency and precision. Interval and linear congruence  consumed less resources but were not as precise as constraint-based domains 
 like octagon and polyhedra, which in turn required more memory and time. Another aspect tested was  the dead variable cleaning mechanism 
 employed by MirChecker. It was measured to improve performance by 
- 10-15\% for constraint-based domains,  while having no major effect for linear congruence and interval domains. \section*{Advantages}
+ 10-15\% for constraint-based domains,  while having no major effect for linear congruence and interval domains. 
+ 
+ \section*{Advantages}
+
+ \paragraph*{Cargo integration} I think that integrating a static analysis tool inside a language toolchain is a great idea. 
+ Static analysis can benefit a lot from compilation information, as demonstrated by MirChecker dead variable analysis or its 
+ informative error messages. Other than that, it favours adoption by end users, who can benefit from the additional checks without 
+ having to modify their familiar workflow.
+
+
+ \paragraph*{Using Z3 for bug detection} The authors decided to use Z3 for the bug detection phase. I think this is a 
+ strong point of their work. Z3 is a powerful and industry tested SMT solver, featuring many different theories such as integer 
+ arithmetic,bit-vectors, uninterpreted functions and many others. By using this power, MirChecker can detect many bugs by simply 
+ converting its internal assertions to a Z3 formula and "outsourcing" the actual solving. Not only does this makes the bug solving more robust, 
+ it significantly simplifies MirChecker design, which can be focused on optimizing the fix-point algorithm, instead of having to add a custom internal solver.
 
 \section*{Disadvantages}
 
+\paragraph*{Memory model}
+The memory model is, by admission of the authors, lightweight and syntax driven. MirChecker may distinguish 
+two  equivalent expressions used as memory addresses simply because the are syntactically different. This makes the analysis 
+less precise, and it forced the authors to employ the reduction rules seen before to try and mitigate the issue. The development of an improved
+memory model, maybe adapting known formal models  (e.g the concept of heaplets in separation logic), should be a top priority to  
+increase the power of the analysis.
+
+\paragraph*{Ignoring Rust advanced features}
+For simplicity, MirChecker does not check more advanced features of rust such as dynamic dispatch, concurrent code and many others. While 
+this is understandable from a complexity point of view, i think it hinders the analyzer power and convenience. This is true especially for concurrency, 
+where problems like deadlocks when using \mintinline{rust}{Mutex<T>} or data races inside unsafe code could be automatically detected.
+
 \section*{Possible Improvements}
+
+\paragraph*{Increasing the number of problems checked}
+Right now MirChecker checks only integer operations and possible lifetime issues. 
+A first improvement would be to check for more problems. For example, the overflow 
+analysis could be extended to floating point operations, which could be extremely valuable 
+to analyze math-intensive crates such as \textbf{ndarray} or \textbf{nalgebra}. Another possibility wou
+
+\paragraph*{Refinement}
+To mitigate the problem of false positives, the authors could employ a refinement mechanism. Refinement techniques 
+takes variou
+\paragraph*{Under-approximation instead of over-approximation}
 
 \bibliographystyle{plain}
 \bibliography{bib.bib}
