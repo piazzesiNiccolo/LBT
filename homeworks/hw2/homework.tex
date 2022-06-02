@@ -34,7 +34,7 @@ They recall the notions of \textbf{lattice} and \textbf{abstract transfer functi
 
 In the next part, there is an introduction on the  main features of Rust, mainly about its 
 powerful type and ownership system. It is mentioned how the restrictive rules for aliasing and mutability prevents many of the typical memory corruption problems. After, the main motivation for the work is presented: although 
-Rust has very advanced tools for memory safety, their incomplete nature and the presence of the \mintinline{rust}{unsafe} keyword  can breach its safety promises, leading  to undetected bugs or worse, undefined behavior. The paper focus on two 
+Rust has very advanced tools for memory safety, their incomplete nature and the presence of the \mintinline{rust}{unsafe} keyword  can breach its safety promises, leading  to undetected bugs or worse, undefined behavior. The paper focuses on two 
 classes of issues affecting the language: \begin{itemize}
     \item \textbf{Runtime panics}.  Rust's type system cannot enforce all the security conditions statically. Some conditions such as array bounds checking or integer overflow detection are postponed until execution, with 
     the compiler automatically instrumenting assertions that, when violated, halt the program. Although this is still a safe way to handle these issues (no memory corruption is possible), an attacker could still exploit this 
@@ -48,7 +48,7 @@ To prevent these issues, the authors decided to combine numerical static analysi
 MirChecker performs static analysis on top of Rust's Mid-level Intermediate Representation (MIR). MIR is produced as an intermediate step during normal compilation. 
 It corresponds to a control flow graph (CFG) representation  and borrow checking is performed on it. Traditionally, Rust static analysis tools reason on LLVM IR or  a custom IR, but the authors decided to use MIR 
 for two main reasons. First, while it reduces most of the complex syntax to a simpler core language, it preserves type information and debugging data, which is used to simplify the actual algorithm.
-Second, LLVM API targets directly C/C++ and are then ported to Rust. Many compatibility issues may arise, differently from using 
+Second, LLVM API targets directly C/C++ and is then ported to Rust. Many compatibility issues may arise, differently from using 
 a native representation. 
 
 
@@ -78,8 +78,8 @@ The analyzer is implemented as a custom callback function for the Rust compiler,
 automatically called after all the necessary data structures are built. 
 
 The actual algorithm uses standard techniques from Abstract Interpretation.
-The CFG is first preprocessed to create a topological ordering of the basic blocks. After, the algorithm traverse the CFG according to the ordering 
-and iteratively executes \textit{Abstract Interpretation} until the result reaches a fix-point.
+The CFG is first preprocessed to create a topological ordering of the basic blocks. After, the algorithm traverses the CFG according to the ordering 
+and iteratively executes \textit{Abstract Interpretation} until the result reaches a fix point.
 In the following step, several bug detectors are called. These bug detectors use 
 constraint solving techniques to determine if some security conditions are violated or not. At the end, a series of 
 diagnostics are emitted to the users, leveraging the compiler infrastructure to provide clear and informative messages.
@@ -102,7 +102,7 @@ MIR, capturing only the relevant aspect for the analysis, namely integer and mem
 \end{figure}
 
 The tool reads a program consisting of several functions (global variable initialization is treated as a function as well), and for each of them, builds the 
-CFG. A CFG is made of basic blocks, which are the nodes of the graph. At the end of each node there is a \textbf{terminator}, which represent a jump  in the control flow. 
+CFG. A CFG is made of basic blocks, which are the nodes of the graph. At the end of each node there is a \textbf{terminator}, which represents a jump  in the control flow. 
 Each terminator is connected with the target block of the jump by an edge in the CFG. There  are five possible terminators:
 \begin{itemize}
     \item A $\mathbf{Call(f , [op_1, op_2,...], (p, b))}$ represents a function call taking 
@@ -131,7 +131,7 @@ Let \textbf{P} be the set of places  occurring in a CFG, MirChecker maintains a 
 to its abstract value. The set \textbf{V} is the set of all possible abstract values and is defined as a 
 \textit{lattice} with $\bot$ and $\top$ representing no value and all possible values. There are two categories of values inside \textbf{V}: 
 \begin{itemize}
-    \item Numerical values (NV) is any integer constraint representation found in 
+    \item Numerical values (NV) are any integer constraint representation found in 
     classic Abstract Interpretation, mainly intervals, octagons, and polyhedra.
     \item Symbolic values (SV) represent a set of possible values in the right hand side of an assignment. The syntax is defined
     according to the \textbf{Rvalue} in \autoref{fig:lang}. They model  all MIR manipulations that cannot be easily modeled 
@@ -144,7 +144,8 @@ The abstract state of computation \textbf{AS} is defined as the \textit{map latt
 that takes as input the abstract state  immediately before the statement, and outputs the abstract state immediately after. The function behavior follows 
 the language model abstract semantics.
 \paragraph{Numerical and symbolic analysis}
-When a transfer function analyze a statement, it first distinguishes wether the operation should be handled numerically or symbolically  using the different semantics:
+When a transfer function analyze a statement, it first distinguishes 
+ the operation should be handled numerically or symbolically  using the different semantics:
 \begin{itemize}
     \item If a statement is as an assignment with an integer right hand side, a binary arithmetic operation, or a negation, the left 
     hand side is handled numerically.
@@ -158,7 +159,7 @@ The algorithm is divided in four parts: \begin{itemize}
     well-defined ordering of blocks. The solution is to generalize, using a strategy called \textit{weak topological ordering} (WTO). The input CFG 
     is sorted according to the WTO, which produces a list  of topologically sorted \textit{strongly connected components} (SCC) in the CFG. Each SCC is either 
     a single basic block , or a list of SCC, meaning a loop in the CFG. For simple basic blocks, the algorithm updates the abstract values according to the language model 
-    seen before. In the case of a loop, the MIR visitor traverses it repeatedly until a fix-point is reached. To ensure that a fix-point is always reached, 
+    seen before. In the case of a loop, the MIR visitor traverses it repeatedly until a fix point is reached. To ensure that a fix point is always reached, 
     a technique called \textit{widening and narrowing is used}.  If the number of iterations exceeds a certain value, the variable 
     is "widened" to its maximum, and progressively narrowed for several iterations  to get better precision. At the end of each block, the terminator is evaluated, 
     generating further constraints that make the numerical analysis more precise.
@@ -169,13 +170,13 @@ The algorithm is divided in four parts: \begin{itemize}
     type information of the arguments passed to the call and handles context switching and changes in the caller environment. To simplify the analysis, a series 
     of special handlers for commonly used functions that are hard to analyze are provided. Recursive calls are simply skipped, 
     with the visitor stopping after the first call.
-    \item \textbf{Verification conditions for bug detections.} After the fix-point is reached,  
+    \item \textbf{Verification conditions for bug detections.} After the fix point is reached,  
     the bug detection phase starts. The detectors use information from the abstract domains and verify security conditions
     using Satisfiability Modulo Theories (SMT) solving. Diagnostics messages are produced if a potential bug is found. The detectors 
     can verify \textbf{runtime panics} and \textbf{lifetime corruptions}. Runtime panics conditions 
     are provided by the \textit{Assert(cond)} terminators. The abstract values are translated into SMT formulas 
     that are then evaluated by an appropriate solver. For lifetime corruption, MirChecker maintains an internal 
-    list of unsafe functions like \mintinline{rust}{Vec::raw_from_parts}. The symbolic analysis gathers the ownership transfer made by these unsafe functions and checks wether the original owner is used 
+    list of unsafe functions like \mintinline{rust}{Vec::raw_from_parts}. The symbolic analysis gathers the ownership transfer made by these unsafe functions and checks whether the original owner is used 
     after the ownership was transferred.
     \item \textbf{Eliminating dead variables}. The lifetime of each variable is explicitly encoded by the statements 
     StorageLive and StorageDead inside MIR. The analyzer takes advantage of this to safely cleanup storage without having to perform 
@@ -192,7 +193,7 @@ MirChecker is implemented in Rust as a customized callback of the compiler.  It 
 \subsection{Benchmarks}
 MirChecker  was thoroughly tested both in precision and efficiency. The evaluation was performed
 in two steps. First, it was evaluated in a "supervised" environment, testing its capacity on a synthetic dataset 
-containing well known bugs. All the bugs (4 memory safety bugs, 6 runtime panics) where successfully detected. 
+containing well known bugs. All the bugs (4 memory safety bugs, 6 runtime panics) were successfully detected. 
 
 In the second phase, 
 MirChecker ability was judged in real life situations. A group of actual Rust crates was collected, with the requirement of having related code to 
@@ -223,10 +224,10 @@ employed by MirChecker. It was measured to improve performance by
  strong point of their work. Z3 is a powerful and industry tested SMT solver, featuring many different theories such as integer 
  arithmetic,bit-vectors, uninterpreted functions and many others. By using this power, MirChecker can detect many bugs by simply 
  converting its internal assertions to a Z3 formula and "outsourcing" the actual solving. Not only does this makes the bug solving more robust, 
- it significantly simplifies MirChecker design, which can be focused on optimizing the fix-point algorithm, instead of having to add a custom internal solver.
+ it significantly simplifies MirChecker design, which can be focused on optimizing the fix point algorithm, instead of having to add a custom internal solver.
 
  \paragraph{Type of bugs detected} Rust is a safe language, and as such does not suffer from the typical memory bugs or unexpected crashes. But, as demonstrated in the paper, 
- it can still have various issues that are not natively captured by the type system. I find that the work proposed is extremely valuable in this regard. THe bugs addressed by MirChecker
+ it can still have various issues that are not natively captured by the type system. I find that the work proposed is extremely valuable in this regard. The bugs addressed by MirChecker
  are hard to manually detect, especially those that arise from an incorrect usage of \mintinline{rust}{unsafe}. Automating their recognition can improve to a great extent code safety, in situations 
  where it is most required.
 \section{Disadvantages}
@@ -241,20 +242,21 @@ increase the power of the analysis.
 \paragraph{Ignoring Rust advanced features}
 For simplicity, MirChecker does not check more advanced features of rust such as dynamic dispatch, concurrent code and many others. While 
 this is understandable from a complexity point of view, i think it hinders the analyzer power and convenience. This is true especially for concurrency, 
-where problems like deadlocks when using \mintinline{rust}{Mutex<T>}, or data races inside unsafe code could be automatically detected.
+where problems like deadlocks when using \mintinline{rust}{Mutex<T>}, or data races inside unsafe code could be prevented 
+using automatic detection.
 
 \section{Possible Improvements}
 
 \paragraph{Increasing the number of problems checked}
 Right now MirChecker checks only integer operations and possible lifetime issues. 
-A first improvement would be to extend the  of bugs detected. For example, the overflow 
+A first improvement would be to extend the range  of bugs detected. For example, the overflow 
 analysis could be extended to floating point operations, which could be extremely valuable 
 to analyze math-intensive crates such as \textbf{ndarray} or \textbf{nalgebra}.
 
 \paragraph{Refinement}
 To mitigate the problem of false positives, the authors could employ a refinement mechanism. Refinement techniques are used to solve 
 this exact problem in abstract interpretation \cite{gulavani2006counterexample}\cite{bogomolov2017counterexample}, and they work by iteratively "concretizing" an abstract domain  until it is precise enough. 
-How much is "enough" depends on the context, and it could a configurable parameter of MirChecker.
+How much is "enough" depends on the context, and it might be a configurable parameter of MirChecker.
 \paragraph{Under-approximation instead of over-approximation}
 A high level improvement  on the general approach used could be made. Citing the authors, "our goal is to provide a useful bug detection tool rather
 than enforcing rigorous formal verification.". This is kind in contrast with the over-approximation technique used in the algorithm. Recent developments 
