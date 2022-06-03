@@ -144,7 +144,7 @@ The abstract state of computation \textbf{AS} is defined as the \textit{map latt
 that takes as input the abstract state  immediately before the statement, and outputs the abstract state immediately after. The function behavior follows 
 the language model abstract semantics.
 \paragraph{Numerical and symbolic analysis}
-When a transfer function analyze a statement, it first distinguishes 
+When a transfer function analyze a statement, it first distinguishes whether
  the operation should be handled numerically or symbolically  using the different semantics:
 \begin{itemize}
     \item If a statement is as an assignment with an integer right hand side, a binary arithmetic operation, or a negation, the left 
@@ -234,7 +234,7 @@ employed by MirChecker. It was measured to improve performance by
 
 \paragraph{Memory model}
 The memory model is, by admission of the authors, lightweight and syntax driven. MirChecker may distinguish 
-two  equivalent expressions used as memory addresses simply because the are syntactically different. This makes the analysis 
+two  equivalent expressions used as memory addresses simply because they are syntactically different. This makes the analysis 
 less precise, and it forced the authors to employ the reduction rules seen before to try and mitigate the issue. The development of an improved
 memory model, maybe adapting known formal models  (e.g the concept of heaplets in separation logic \cite{o2019separation}), should be a top priority to  
 increase the power of the analysis.
@@ -249,9 +249,9 @@ using automatic detection.
 
 \paragraph{Increasing the number of problems checked}
 Right now MirChecker checks only integer operations and possible lifetime issues. 
-A first improvement would be to extend the range  of bugs detected. For example, the overflow 
-analysis could be extended to floating point operations, which could be extremely valuable 
-to analyze math-intensive crates such as \textbf{ndarray} or \textbf{nalgebra}.
+A first improvement would be to increase the range  of bugs detected. For example, extending the overflow 
+analysis to floating point operations would be extremely valuable 
+to analyze math-intensive crates, such as \textbf{ndarray} or \textbf{nalgebra}.
 
 \paragraph{Refinement}
 To mitigate the problem of false positives, the authors could employ a refinement mechanism. Refinement techniques are used to solve 
@@ -259,7 +259,7 @@ this exact problem in abstract interpretation \cite{gulavani2006counterexample}\
 How much is "enough" depends on the context, and it might be a configurable parameter of MirChecker.
 \paragraph{Under-approximation instead of over-approximation}
 A high level improvement  on the general approach used could be made. Citing the authors, "our goal is to provide a useful bug detection tool rather
-than enforcing rigorous formal verification.". This is kind in contrast with the over-approximation technique used in the algorithm. Recent developments 
+than enforcing rigorous formal verification.". This is somewhat in contrast with the over-approximation technique used in the algorithm. Recent developments 
 in the formal methods community \cite{o2019incorrectness}\cite{murray2021incremental}\cite{le2022finding} have shown that using an under-approximation perspective can benefit bug detection. Losing soundness but gaining only true positive  alerts 
 is a tradeoff that might be beneficial in this context.
 \bibliographystyle{unsrt}
